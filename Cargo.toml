@@ -1,0 +1,18 @@
+[package]
+name = "stroids-clone"
+version = "0.1.0"
+authors = ["Grant"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+piston_window = "0.105.0"
+piston2d-opengl_graphics = "0.69.0"
+piston-music = "0.25.1"
+piston2d-sprite = "0.58.0"
+piston-ai_behavior = "0.31.0"
+rand = "0.7.2"
+uuid = "0.6.5"
+find_folder = "*"
