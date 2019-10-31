@@ -2,27 +2,32 @@ extern crate find_folder;
 
 use opengl_graphics::{Texture, GlGraphics};
 use sprite::{Scene, Sprite,};
-use piston_window::{TextureSettings, Context, UpdateArgs};
+use piston_window::{Context, UpdateArgs};
 use std::rc::Rc;
+use serde::Deserialize;
 use uuid::Uuid;
-use crate::utils::{Vector, angle_to_vector, make_sized_bounds};
+use crate::utils::{Vector, angle_to_vector, loop_pos};
 use crate::{VIEW_H, VIEW_W};
 
-const LASER_LIFETIME: f64 = 0.8;
-const LASER_SPEED: f64 = 8.0;
+#[derive(Deserialize, Clone)]
+pub struct LaserConfig {
+    laser_lifetime: f64,
+    laser_speed: f64,
+}
 
+#[derive(Clone)]
 pub struct Laser {
-    pos: Vector,
-    bounds: Vector,
+    pub pos: Vector,
     vel: Vector,
     size: Vector,
     rot: f64,
     pub life: f64,
     sprite_id: Uuid,
+    diameter: f64,
 }
 
 impl Laser {
-    pub fn new(pos: Vector, fake_rot: f64, tex: Rc<Texture>, scene: &mut Scene<Texture>) -> Self {
+    pub fn new(config: LaserConfig, pos: Vector, fake_rot: f64, tex: Rc<Texture>, scene: &mut Scene<Texture>) -> Self {
         let mut sprite = Sprite::from_texture_rect(tex, [334.0, 223.0, 4.0, 4.0]);
         let sprite_box = sprite.bounding_box();
         sprite.set_scale(0.5, 0.5);
@@ -31,11 +36,11 @@ impl Laser {
         Self {
             pos,
             rot,
-            life: LASER_LIFETIME,
-            vel: angle_to_vector(LASER_SPEED, rot),
+            life: config.laser_lifetime,
+            vel: angle_to_vector(config.laser_speed, rot),
             sprite_id: scene.add_child(sprite),
-            bounds: make_sized_bounds(VIEW_W, VIEW_H, sprite_box),
             size: Vector::new(sprite_box[2], sprite_box[3]),
+            diameter: sprite_box[2].max(sprite_box[3]),
         }
     }
 
@@ -49,17 +54,8 @@ impl Laser {
         );
     }
     pub fn update(&mut self, args: UpdateArgs) {
-        self.pos += self.vel;
-        if self.pos.x >= VIEW_W {
-            self.pos.x -= VIEW_W - self.size.x;
-        } else if self.pos.x < 0.0 {
-            self.pos.y += VIEW_W + self.size.x;
-        }
-        if self.pos.y >= VIEW_H {
-            self.pos.y -= VIEW_H - self.size.y
-        } else if self.pos.y < 0.0 {
-            self.pos.y += VIEW_H + self.size.y;
-        }
+        self.pos += self.vel * args.dt.into();
+        self.pos = loop_pos(self.pos, self.diameter, Vector::new(VIEW_W, VIEW_H));
 
         if self.life > 0.0 {
             self.life = (self.life - args.dt).max(0.0);

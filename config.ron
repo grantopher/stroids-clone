@@ -1,0 +1,32 @@
+(
+    ship_config: ShipConfig(
+        scale: 0.5,
+        rotation_increment: 300.0,
+        thrust_increment: 6.0,
+        blink_timer: 0.04,
+        laser_timer: 0.08,
+    ),
+    key_config: KeyConfig(
+// KEYBINDINGS:
+        rotate_cw: S,
+        rotate_ccw: A,
+        thrust: W,
+        fire_laser: Space,
+    ),
+    generator_config: GeneratorConfig(
+        num_of_asteroids: 10,
+    ),
+    laser_config: LaserConfig(
+        laser_lifetime: 1.2,
+        laser_speed: 500.0,
+    ),
+    roid_config: RoidConfig(
+        min_speed: 1.0,
+        max_speed: 3.0,
+        max_rot: 200.0,
+        min_scale: 0.5,
+        max_scale: 1.0,
+        min_spawn_mag: 150.0,
+        max_spawn_mag: 300.0,
+    )
+)
