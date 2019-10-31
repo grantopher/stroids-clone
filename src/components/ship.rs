@@ -1,20 +1,23 @@
-extern crate find_folder;
-
 use opengl_graphics::{Texture, GlGraphics};
 use sprite::{Scene, Sprite,};
 use piston_window::{Context, UpdateArgs};
+use serde::Deserialize;
 use std::rc::Rc;
 use uuid::Uuid;
-use crate::utils::{Vector, degree_to_radians, angle_to_vector};
+use crate::utils::{Vector, degree_to_radians, angle_to_vector, loop_pos};
 use crate::{VIEW_H, VIEW_W};
 
-const SHIP_SCALE: f64 = 0.5;
-const ROTATION_INCREMENT: f64 = 1000.0;
-const THRUST_INCREMENT: f64 = 8.0;
-const BLINK_TIMER: f64 = 0.04;
-const LASER_TIMER: f64 = 0.05;
+#[derive(Deserialize, Clone)]
+pub struct ShipConfig {
+    scale: f64,
+    rotation_increment: f64,
+    thrust_increment: f64,
+    blink_timer: f64,
+    laser_timer: f64,
+}
 
-pub struct Ship {
+pub struct Ship{
+    config: ShipConfig,
     sprite_id: Uuid,
     pub pos: Vector,
     pub rot: f64,
@@ -25,8 +28,6 @@ pub struct Ship {
     blink_cooldown: f64,
     laser_cooldown: f64,
     radius: f64,
-    bounds: Vector,
-
 }
 
 #[derive(Default)]
@@ -39,16 +40,17 @@ pub struct Actions {
 }
 
 impl Ship {
-    pub fn new(scene: &mut Scene<Texture>, tex: Rc<Texture>) -> Self {
+    pub fn new(config: ShipConfig, scene: &mut Scene<Texture>, tex: Rc<Texture>) -> Self {
         let pos = Vector::new(
             VIEW_W / 2.0,
             VIEW_H / 2.0
         );
         let mut sprite = Sprite::from_texture_rect(tex, [13.0, 4.0, 67.0, 80.0]);
-        sprite.set_scale(SHIP_SCALE, SHIP_SCALE);
+        sprite.set_scale(config.scale, config.scale);
         let sprite_box = sprite.bounding_box();
 
         Self {
+            config,
             sprite_id: scene.add_child(sprite),
             pos,
             rot: 0.0,
@@ -59,10 +61,6 @@ impl Ship {
             blink_cooldown: 0.0,
             laser_cooldown: 0.0,
             radius: sprite_box[2].max(sprite_box[3]),
-            bounds: Vector::new(
-                VIEW_W + sprite_box[2] * 2.0,
-                VIEW_H + sprite_box[3] * 2.0,
-            )
 
         }
     }
@@ -87,17 +85,17 @@ impl Ship {
     }
 
     fn rotate_cw(&mut self, delta: f64) {
-        self.rot += ROTATION_INCREMENT * delta;
+        self.rot += self.config.rotation_increment * delta;
     }
     fn rotate_ccw(&mut self, delta: f64) {
-        self.rot -= ROTATION_INCREMENT * delta;
+        self.rot -= self.config.rotation_increment * delta;
     }
 
     fn accelerate(&mut self, delta: f64) {
         let rads = degree_to_radians(self.rot - 90.0);
         let acceleration = Vector::new(
-            rads.cos() * THRUST_INCREMENT * delta,
-            rads.sin() * THRUST_INCREMENT * delta,
+            rads.cos() * self.config.thrust_increment * delta,
+            rads.sin() * self.config.thrust_increment * delta,
         );
 
         self.vel += acceleration;
@@ -108,25 +106,16 @@ impl Ship {
     }
 
     fn reset_blink_cd(&mut self) {
-        self.blink_cooldown = BLINK_TIMER;
+        self.blink_cooldown = self.config.blink_timer;
     }
 
     pub fn reset_laser_cd(&mut self) {
-        self.laser_cooldown = LASER_TIMER;
+        self.laser_cooldown = self.config.laser_timer;
     }
 
     pub fn update(&mut self, args: UpdateArgs) {
         self.pos += self.vel;
-        if self.pos.x >= VIEW_W + self.radius {
-            self.pos.x = -self.radius;
-        } else if self.pos.x < -self.radius {
-            self.pos.x = VIEW_W + self.radius;
-        }
-        if self.pos.y >= VIEW_H + self.radius {
-            self.pos.y = -self.radius;
-        } else if self.pos.y < -self.radius {
-            self.pos.y = VIEW_H + self.radius;
-        }
+        self.pos = loop_pos(self.pos, self.radius, Vector::new(VIEW_W, VIEW_H));
 
         if self.actions.rotate_cw {
             self.rotate_cw(args.dt);

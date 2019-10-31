@@ -1,19 +1,32 @@
 use piston_window::{PistonWindow, clear, RenderEvent, UpdateEvent, PressEvent, ReleaseEvent, Button, Key, TextureSettings};
 use opengl_graphics::{GlGraphics, Texture};
 use sprite::{Scene};
+use serde::Deserialize;
 use std::rc::Rc;
 
-use crate::utils::BLACK;
+
+use crate::utils::{BLACK, point_within_radius};
+use crate::GameConfig;
 use crate::components::ship::Ship;
 use crate::components::laser::Laser;
-use crate::components::roid::Roid;
-use rand::Rng;
+use crate::components::roid::{Roid, RoidConfig};
 use rand::rngs::ThreadRng;
 use rand::{thread_rng};
 
+#[derive(Deserialize)]
+pub struct KeyConfig {
+    rotate_cw: Key,
+    rotate_ccw: Key,
+    fire_laser: Key,
+    thrust: Key,
+}
+
+#[derive(Deserialize)]
+pub struct GeneratorConfig {
+    num_of_asteroids: i32,
+}
+
 pub struct Game {
-    score: i128,
-    timer: f64,
     lasers: Vec<Laser>,
     roids: Vec<Roid>,
 }
@@ -21,18 +34,16 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         Self {
-            score: 0,
-            timer: 0.0,
             lasers: Vec::new(),
             roids: Vec::new(),
         }
     }
 
-    pub fn run(&mut self, window: &mut PistonWindow, opengl: &mut GlGraphics, scene: &mut Scene<Texture>) {
+    pub fn run(&mut self, window: &mut PistonWindow, opengl: &mut GlGraphics, scene: &mut Scene<Texture>, config: GameConfig) {
         let mut rng = thread_rng();
         let texture = load_texture();
-        let mut ship = Ship::new(scene, texture.clone());
-        self.roids = generate_roids(scene, texture.clone(), &mut rng);
+        let mut ship = Ship::new(config.ship_config.clone(), scene, texture.clone());
+        self.roids = generate_roids(scene, texture.clone(), &mut rng, config.generator_config.num_of_asteroids, config.roid_config.clone());
         while let Some(event) = window.next() {
             if let Some(args) = event.render_args() {
                 opengl.draw(args.viewport(), |context, graphics| {
@@ -50,6 +61,7 @@ impl Game {
                 ship.update(args);
                 if ship.is_firing_laser() {
                     self.lasers.push(Laser::new(
+                        config.laser_config.clone(),
                         ship.get_laser_pos(),
                         ship.rot.clone(),
                         texture.clone(),
@@ -65,24 +77,45 @@ impl Game {
                 for roid in &mut self.roids {
                     roid.update(args);
                 }
+                let mut l_copy = self.lasers.clone();
+                self.roids.retain(|roid| {
+                    let mut colide = false;
+                    for l in &mut l_copy {
+                        if point_within_radius(l.pos, roid.pos, roid.diameter / 2.0) {
+                            colide = true;
+                            break;
+                        }
+                    }
+                    !colide
+                });
             }
             if let Some(Button::Keyboard(key)) = event.press_args() {
-                match key {
-                    Key::A => ship.actions.rotate_ccw = true,
-                    Key::S => ship.actions.rotate_cw = true,
-                    Key::W => ship.actions.fire_boosters = true,
-                    Key::Space => ship.actions.is_shooting = true,
-                    _ => {}
+                if key == config.key_config.rotate_cw {
+                    ship.actions.rotate_cw  = true;
+                }
+                if key == config.key_config.rotate_ccw {
+                    ship.actions.rotate_ccw = true;
+                }
+                if key == config.key_config.thrust {
+                    ship.actions.fire_boosters = true;
+                }
+                if key == config.key_config.fire_laser {
+                    ship.actions.is_shooting = true;
                 }
             }
 
             if let Some(Button::Keyboard(key)) = event.release_args() {
-                match key {
-                    Key::A => ship.actions.rotate_ccw = false,
-                    Key::S => ship.actions.rotate_cw = false,
-                    Key::W => ship.actions.fire_boosters = false,
-                    Key::Space => ship.actions.is_shooting = false,
-                    _ => {}
+                if key == config.key_config.rotate_cw {
+                    ship.actions.rotate_cw  = false;
+                }
+                if key == config.key_config.rotate_ccw {
+                    ship.actions.rotate_ccw = false;
+                }
+                if key == config.key_config.thrust {
+                    ship.actions.fire_boosters = false;
+                }
+                if key == config.key_config.fire_laser {
+                    ship.actions.is_shooting = false;
                 }
             }
         }
@@ -99,10 +132,10 @@ fn load_texture() -> Rc<Texture> {
     )
 }
 
-fn generate_roids(scene: &mut Scene<Texture>, texture: Rc<Texture>, rng: &mut ThreadRng) -> Vec<Roid> {
+fn generate_roids(scene: &mut Scene<Texture>, texture: Rc<Texture>, rng: &mut ThreadRng, n: i32, config: RoidConfig) -> Vec<Roid> {
     let mut v = Vec::new();
-    for i in 0..4000 {
-        v.push(Roid::new(texture.clone(), scene, rng));
+    for _ in 0..n {
+        v.push(Roid::new(config.clone(), texture.clone(), scene, rng));
     }
     v
 }

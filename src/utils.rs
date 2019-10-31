@@ -1,7 +1,6 @@
 use std::ops::{Add, AddAssign, Mul, MulAssign, Div, DivAssign, Rem, RemAssign, Sub, SubAssign};
 
 pub const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-pub const WHITE: [f32; 4] = [1.0; 4];
 
 #[derive(Copy, Clone, Default)]
 pub struct Vector {
@@ -128,9 +127,46 @@ pub fn angle_to_vector(mag: f64, theta: f64) -> Vector {
     )
 }
 
-pub fn make_sized_bounds(width: f64, height: f64, sprite_box: [f64; 4]) -> Vector {
-    Vector {
-        x: width + sprite_box[2] * 2.0,
-        y: height + sprite_box[3] * 2.0,
+//pub fn point_in_box(point: Vector, bbox: [Vector; 2]) -> bool {
+//    point.x >= bbox[0].x
+//    && point.x <= bbox[1].x
+//    && point.y >= bbox[0].y
+//    && point.y <= bbox[1].y
+//}
+
+pub fn point_within_radius(point: Vector, source: Vector, radius: f64) -> bool {
+    let delta = ((point.x - source.x).powi(2) + (point.y - source.y).powi(2)).sqrt();
+    delta <= radius
+}
+
+pub fn loop_pos(pos: Vector, diameter: f64, bounds: Vector) -> Vector {
+    let mut ret_vector = Vector::new_empty();
+    if pos.x >= bounds.x + diameter {
+        ret_vector.x = -diameter;
+    } else if pos.x < -diameter {
+        ret_vector.x = bounds.x + diameter;
+    } else {
+        ret_vector.x = pos.x;
+    }
+    if pos.y >= bounds.y + diameter {
+        ret_vector.y = -diameter;
+    } else if pos.y < -diameter {
+        ret_vector.y = bounds.y + diameter;
+    } else {
+        ret_vector.y = pos.y;
+    }
+    ret_vector
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_point_within_radius() {
+        let p1 = Vector::new(100.0, 100.0);
+        let p2 = Vector::new(90.0, 90.0);
+        assert_eq!(point_within_radius(p1, p2, 15.0), true);
     }
 }
+
