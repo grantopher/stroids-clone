@@ -2,9 +2,10 @@
     ship_config: ShipConfig(
         scale: 0.5,
         rotation_increment: 300.0,
-        thrust_increment: 6.0,
+        thrust_increment: 10.0,
         blink_timer: 0.04,
         laser_timer: 0.08,
+        max_velocity: 10.0,
     ),
     key_config: KeyConfig(
 // KEYBINDINGS:
@@ -18,15 +19,15 @@
     ),
     laser_config: LaserConfig(
         laser_lifetime: 1.2,
-        laser_speed: 500.0,
+        laser_speed: 10.0,
     ),
     roid_config: RoidConfig(
-        min_speed: 1.0,
-        max_speed: 3.0,
+        min_speed: 0.8,
+        max_speed: 1.5,
         max_rot: 200.0,
-        min_scale: 0.5,
-        max_scale: 1.0,
-        min_spawn_mag: 150.0,
+        min_scale: 1.0,
+        max_scale: 2.0,
+        min_spawn_mag: 180.0,
         max_spawn_mag: 300.0,
     )
 )

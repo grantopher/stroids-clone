@@ -27,7 +27,7 @@ pub struct Laser {
 }
 
 impl Laser {
-    pub fn new(config: LaserConfig, pos: Vector, fake_rot: f64, tex: Rc<Texture>, scene: &mut Scene<Texture>) -> Self {
+    pub fn new(base_vel: Vector, config: LaserConfig, pos: Vector, fake_rot: f64, tex: Rc<Texture>, scene: &mut Scene<Texture>) -> Self {
         let mut sprite = Sprite::from_texture_rect(tex, [334.0, 223.0, 4.0, 4.0]);
         let sprite_box = sprite.bounding_box();
         sprite.set_scale(0.5, 0.5);
@@ -37,7 +37,7 @@ impl Laser {
             pos,
             rot,
             life: config.laser_lifetime,
-            vel: angle_to_vector(config.laser_speed, rot),
+            vel: angle_to_vector(config.laser_speed, rot) + base_vel,
             sprite_id: scene.add_child(sprite),
             size: Vector::new(sprite_box[2], sprite_box[3]),
             diameter: sprite_box[2].max(sprite_box[3]),
@@ -54,7 +54,7 @@ impl Laser {
         );
     }
     pub fn update(&mut self, args: UpdateArgs) {
-        self.pos += self.vel * args.dt.into();
+        self.pos += self.vel * args.dt.into() * 60.0.into();
         self.pos = loop_pos(self.pos, self.diameter, Vector::new(VIEW_W, VIEW_H));
 
         if self.life > 0.0 {

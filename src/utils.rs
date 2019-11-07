@@ -19,6 +19,26 @@ impl Vector {
             y,
         }
     }
+    
+    pub fn min(&self, nv: Vector) -> Vector {
+        Vector {
+            x: self.x.min(nv.x),
+            y: self.y.min(nv.y),
+        }
+    }
+
+    pub fn max(&self, nv: Vector) -> Vector {
+        Vector {
+            x: self.x.max(nv.x),
+            y: self.y.max(nv.y),
+        }
+    }
+    pub fn round(&self) -> Vector {
+        Vector {
+            x: self.x.round(),
+            y: self.y.round(),
+        }
+    }
 }
 
 impl Add for Vector {
