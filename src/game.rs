@@ -12,6 +12,7 @@ use crate::components::laser::Laser;
 use crate::components::roid::{Roid, RoidConfig};
 use rand::rngs::ThreadRng;
 use rand::{thread_rng};
+use std::path::PathBuf;
 
 #[derive(Deserialize)]
 pub struct KeyConfig {
@@ -89,11 +90,11 @@ impl Game {
         }
     }
 
-    pub fn run(&mut self, window: &mut PistonWindow, opengl: &mut GlGraphics, scene: &mut Scene<Texture>, config: GameConfig) {
+    pub fn run(&mut self, window: &mut PistonWindow, opengl: &mut GlGraphics, scene: &mut Scene<Texture>, config: GameConfig, config_dir: PathBuf) {
         let mut rng = thread_rng();
-        let texture = load_texture();
         let mut level = 1;
         let mut glyph_cache = GlyphCache::new("./assets/fonts/square.ttf", (), TextureSettings::new()).unwrap();
+        let texture = load_texture(config_dir);
         let mut ship = Ship::new(config.ship_config.clone(), scene, texture.clone());
         let mut roids = generate_roids(scene, texture.clone(), &mut rng, config.generator_config.num_of_asteroids, config.roid_config.clone());
         let mut lasers: Vec<Laser> = Vec::new();
@@ -201,11 +202,13 @@ impl Game {
     }
 }
 
-fn load_texture() -> Rc<Texture> {
-    let assets = find_folder::Search::ParentsThenKids(3, 3).for_folder("assets").unwrap();
+fn load_texture(config_dir: PathBuf) -> Rc<Texture> {
+    let mut ship_asset_path = config_dir;
+    ship_asset_path.push("img");
+    ship_asset_path.push("ship2.png");
     Rc::new(
         Texture::from_path(
-            assets.join("img/ship2.png"),
+            ship_asset_path,
             &TextureSettings::new(),
         ).unwrap(),
     )
