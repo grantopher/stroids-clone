@@ -1,4 +1,5 @@
-extern crate find_folder;
+#[macro_use]
+extern crate structopt;
 
 use opengl_graphics::{GlGraphics, Texture};
 use sprite::*;
@@ -14,12 +15,27 @@ mod components;
 use game::Game;
 use crate::components::{ship::ShipConfig, laser::LaserConfig, roid::RoidConfig};
 use crate::game::{KeyConfig, GeneratorConfig};
+use std::path::PathBuf;
+use structopt::StructOpt;
 
 const VIEW_W: f64 = 1024.0;
 const VIEW_H: f64 = 768.0;
 
+#[derive(Debug, StructOpt)]
+#[structopt(name = "stroids", about = "stroids.")]
+struct Opt {
+    /// Input file
+    #[structopt(short, long, parse(from_os_str), env = "STROIDS_CONFIG_PATH")]
+    pub config: Option<PathBuf>,
+    #[structopt(short, long, parse(from_os_str), env = "STROIDS_ASSETS_PATH")]
+    pub assets: Option<PathBuf>,
+}
+
 fn main() {
-    let game_config = load_cfg();
+    let opt = Opt::from_args();
+    let config_dir = Option::<PathBuf>::expect(opt.config, "No path to config dir");
+    let assets_dir = Option::<PathBuf>::expect(opt.assets, "No path to assets dir");
+    let game_config = load_cfg(config_dir.clone());
     let game_title = "Stroids...";
     let game_window_size = Size {
         width: VIEW_W,
@@ -40,8 +56,7 @@ fn main() {
 
     let mut game = Game::new();
     let mut gl = GlGraphics::new(opengl);
-    game.run(&mut window, &mut gl, &mut scene, game_config);
-
+    game.run(&mut window, &mut gl, &mut scene, game_config, assets_dir.clone());
 }
 
 #[derive(Deserialize)]
@@ -53,9 +68,9 @@ pub struct GameConfig {
     roid_config: RoidConfig,
 }
 
-fn load_cfg() -> GameConfig {
-    let input_path = format!("{}/config.ron", env!("CARGO_MANIFEST_DIR"));
-    let f = File::open(&input_path).expect("Failed to open file");
+fn load_cfg(mut config_dir: PathBuf) -> GameConfig {
+    config_dir.push("config.ron");
+    let f = File::open(config_dir).expect("Failed to open file");
     match from_reader(f) {
         Ok(x) => x,
         Err(e) => {
