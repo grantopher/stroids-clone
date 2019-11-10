@@ -14,6 +14,7 @@ pub struct ShipConfig {
     thrust_increment: f64,
     blink_timer: f64,
     laser_timer: f64,
+    max_velocity: f64,
 }
 
 pub struct Ship{
@@ -21,13 +22,14 @@ pub struct Ship{
     sprite_id: Uuid,
     pub pos: Vector,
     pub rot: f64,
-    vel: Vector,
+    pub vel: Vector,
     pub actions: Actions,
     tinted: bool,
     tint_rgb: [f32; 3],
     blink_cooldown: f64,
     laser_cooldown: f64,
-    radius: f64,
+    pub radius: f64,
+    pub dead: bool,
 }
 
 #[derive(Default)]
@@ -61,13 +63,14 @@ impl Ship {
             blink_cooldown: 0.0,
             laser_cooldown: 0.0,
             radius: sprite_box[2].max(sprite_box[3]),
-
+            dead: false,
         }
     }
 
     pub fn draw(&mut self, context: Context, graphics: &mut GlGraphics, scene: &mut Scene<Texture>) {
         let sprite = scene.child_mut(self.sprite_id).unwrap();
-        sprite.set_position(self.pos.x, self.pos.y);
+        let normed = self.pos.round();
+        sprite.set_position(normed.x, normed.y);
         sprite.set_rotation(self.rot);
         if self.tinted {
             sprite.draw_tinted(
@@ -99,6 +102,8 @@ impl Ship {
         );
 
         self.vel += acceleration;
+        self.vel = self.vel.min(self.config.max_velocity.into());
+        self.vel = self.vel.max((-1.0 * self.config.max_velocity).into());
     }
 
     fn blink(&mut self) {
@@ -114,7 +119,7 @@ impl Ship {
     }
 
     pub fn update(&mut self, args: UpdateArgs) {
-        self.pos += self.vel;
+        self.pos += self.vel * args.dt.into() * 60.0.into();
         self.pos = loop_pos(self.pos, self.radius, Vector::new(VIEW_W, VIEW_H));
 
         if self.actions.rotate_cw {
@@ -146,6 +151,19 @@ impl Ship {
     
     pub fn get_laser_pos(&mut self) -> Vector {
         angle_to_vector(self.radius / 2.0, self.rot - 90.0) + self.pos
+    }
+
+    pub fn reset(&mut self) {
+        self.vel = Vector::new_empty();
+        self.pos = Vector::new(VIEW_W / 2.0, VIEW_H / 2.0);
+    }
+
+    pub fn kill(&mut self) {
+        self.dead = true;
+    }
+
+    pub fn unkill(&mut self) {
+        self.dead = false;
     }
 }
 
