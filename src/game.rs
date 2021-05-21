@@ -41,6 +41,7 @@ struct TickCounter {
     render_frames: f64,
     avg_render_frames: f64,
     update_ticks: f64,
+    avg_update_ticks: f64,
 }
 
 impl TickCounter {
